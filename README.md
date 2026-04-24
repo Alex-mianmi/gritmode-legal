@@ -1,6 +1,6 @@
-# Gritmode Legal
+# GritMode Legal
 
-Legal documents for the [Gritmode](https://apps.apple.com/) iOS application.
+Legal documents for the [GritMode](https://apps.apple.com/) iOS application.
 
 Hosted via GitHub Pages.
 
