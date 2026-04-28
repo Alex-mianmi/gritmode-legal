@@ -26,10 +26,13 @@
     }
   }
   * { box-sizing: border-box; }
-  html, body {
+  html {
+    background: var(--bg);
+  }
+  body {
     margin: 0;
     padding: 0;
-    background: var(--bg);
+    background: transparent;
     color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
     font-size: 16px;
@@ -38,10 +41,49 @@
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
   }
+  /* ========== Matrix rain background (light + dark) ========== */
+  #matrix-bg {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.07;
+  }
+  @media (prefers-color-scheme: dark) {
+    #matrix-bg { opacity: 0.12; }
+  }
+  .scanlines {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent, transparent 3px,
+      rgba(0,0,0,0.025) 3px, rgba(0,0,0,0.025) 4px
+    );
+  }
+  @media (prefers-color-scheme: dark) {
+    .scanlines {
+      background: repeating-linear-gradient(
+        0deg,
+        transparent, transparent 3px,
+        rgba(0,0,0,0.07) 3px, rgba(0,0,0,0.07) 4px
+      );
+    }
+  }
   main {
+    position: relative;
+    z-index: 2;
     max-width: 720px;
     margin: 0 auto;
     padding: 48px 24px 80px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #matrix-bg { display: none; }
+    .scanlines { display: none; }
   }
   header {
     border-bottom: 1px solid var(--border);
@@ -131,6 +173,8 @@
 </style>
 </head>
 <body>
+<canvas id="matrix-bg" aria-hidden="true"></canvas>
+<div class="scanlines" aria-hidden="true"></div>
 <main>
 
 <header>
@@ -382,5 +426,61 @@
 </footer>
 
 </main>
+<script>
+  /* ========== Matrix rain (theme-aware) ========== */
+  (function () {
+    const canvas = document.getElementById('matrix-bg');
+    if (!canvas) return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const ctx = canvas.getContext('2d');
+    const CHARS = '01アイウエオカキクサシスタチナニABCDEF0123456789>_/[]{}⊕⊗≡';
+    const SIZE = 14;
+    let cols, drops, dpr;
+    const darkMQ = window.matchMedia('(prefers-color-scheme: dark)');
+    let dark = darkMQ.matches;
+
+    function resize() {
+      dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.floor(window.innerWidth * dpr);
+      canvas.height = Math.floor(window.innerHeight * dpr);
+      canvas.style.width = window.innerWidth + 'px';
+      canvas.style.height = window.innerHeight + 'px';
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
+      cols = Math.floor(window.innerWidth / SIZE);
+      drops = Array.from({ length: cols }, () => Math.random() * -60);
+    }
+
+    function tick() {
+      // Trail fade — uses base bg color so the matrix color "decays" into the document background
+      ctx.fillStyle = dark ? 'rgba(15,17,21,0.085)' : 'rgba(255,255,255,0.10)';
+      ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+      ctx.font = SIZE + 'px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace';
+      for (let i = 0; i < cols; i++) {
+        const ch = CHARS[Math.floor(Math.random() * CHARS.length)];
+        const op = 0.20 + Math.random() * 0.55;
+        // Light: deep green accent (#0a7d4a). Dark: bright neon (#4dd6a0)
+        ctx.fillStyle = dark
+          ? 'rgba(77,214,160,' + op + ')'
+          : 'rgba(10,125,74,' + op + ')';
+        ctx.fillText(ch, i * SIZE, drops[i] * SIZE);
+        if (drops[i] * SIZE > window.innerHeight && Math.random() > 0.972) {
+          drops[i] = Math.random() * -40;
+        }
+        drops[i] += 0.6;
+      }
+    }
+
+    resize();
+    window.addEventListener('resize', resize);
+    if (darkMQ.addEventListener) {
+      darkMQ.addEventListener('change', function (e) { dark = e.matches; });
+    } else if (darkMQ.addListener) {
+      darkMQ.addListener(function (e) { dark = e.matches; });
+    }
+    setInterval(tick, 75);
+  })();
+</script>
 </body>
 </html>
